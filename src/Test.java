@@ -1,5 +1,7 @@
 import core.Game;
 import players.*;
+import players.groupW.MyMCTSParams;
+import players.groupW.MyMCTSPlayer;
 import utils.Types;
 import players.rhea.utils.Constants;
 import players.mcts.MCTSPlayer;
@@ -37,7 +39,11 @@ public class Test {
         RHEAParams rheaParams = new RHEAParams();
         rheaParams.heurisic_type = Constants.CUSTOM_HEURISTIC;
 
-        players.add(new MCTSPlayer(seed, playerID++, mctsParams));
+        // Our player
+        players.add(new MyMCTSPlayer(seed, playerID++));
+
+
+//        players.add(new MCTSPlayer(seed, playerID++, mctsParams));
         //players.add(new MCTSPlayer(seed, playerID++, mctsParams));
 
 //        players.add(new SimplePlayer(seed, playerID++));
