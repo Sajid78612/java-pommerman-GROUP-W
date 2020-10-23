@@ -1,5 +1,6 @@
 import core.Game;
 import players.*;
+import players.groupW.EMCTS.EMCTSPlayer;
 import players.groupW.MyMCTSPlayer;
 import players.mcts.MCTSParams;
 import players.mcts.MCTSPlayer;
@@ -126,6 +127,10 @@ public class Run {
                     case 6:
                         p = new MyMCTSPlayer(seed, playerID++);
                         playerStr[i-4] = "MyMCTS";
+                        break;
+                    case 7:
+                        p = new EMCTSPlayer(seed, playerID++);
+                        playerStr[i-4] = "EMCTS";
                         break;
                     default:
                         System.out.println("WARNING: Invalid agent ID: " + agentType );
