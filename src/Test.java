@@ -1,5 +1,6 @@
 import core.Game;
 import players.*;
+import players.groupW.EMCTS.EMCTSPlayer;
 import players.groupW.MyMCTSParams;
 import players.groupW.MyMCTSPlayer;
 import utils.Types;
@@ -40,8 +41,8 @@ public class Test {
         rheaParams.heurisic_type = Constants.CUSTOM_HEURISTIC;
 
         // Our player
-        players.add(new MyMCTSPlayer(seed, playerID++));
-
+//        players.add(new MyMCTSPlayer(seed, playerID++));
+        players.add(new EMCTSPlayer(seed, playerID++));
 
 //        players.add(new MCTSPlayer(seed, playerID++, mctsParams));
         //players.add(new MCTSPlayer(seed, playerID++, mctsParams));
