@@ -8,11 +8,12 @@ import java.util.Map;
 
 public class MyMCTSParams implements ParameterSet {
 
-    public int maxRolloutDepth = 10;
+    public int maxRolloutDepth = 20;
     public double epsilon = 1e-6;
+    public double K = Math.sqrt(2);
 
     // Change this for testing
-    public int maxNumIterations = 100;
+    public int maxNumIterations = 200;
 
     @Override
     public void setParameterValue(String s, Object o) {

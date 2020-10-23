@@ -1,5 +1,6 @@
 import core.Game;
 import players.*;
+import players.groupW.MyMCTSPlayer;
 import players.mcts.MCTSParams;
 import players.mcts.MCTSPlayer;
 import players.rhea.RHEAPlayer;
@@ -121,6 +122,10 @@ public class Run {
                         mctsParams.heuristic_method = mctsParams.CUSTOM_HEURISTIC;
                         p = new MCTSPlayer(seed, playerID++, mctsParams);
                         playerStr[i-4] = "MCTS";
+                        break;
+                    case 6:
+                        p = new MyMCTSPlayer(seed, playerID++);
+                        playerStr[i-4] = "MyMCTS";
                         break;
                     default:
                         System.out.println("WARNING: Invalid agent ID: " + agentType );

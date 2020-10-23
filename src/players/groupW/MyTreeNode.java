@@ -1,10 +1,8 @@
 package players.groupW;
 
 import core.GameState;
-import players.heuristics.AdvancedHeuristic;
 import players.heuristics.CustomHeuristic;
 import players.heuristics.StateHeuristic;
-import players.mcts.SingleTreeNode;
 import utils.Types;
 import utils.Utils;
 import utils.Vector2d;
@@ -46,6 +44,9 @@ public class MyTreeNode {
 
     private int numIterations = 0;
 
+    private double[] raveVisits;
+    private double[] raveWins;
+
     /**
      * Constructor for our tree node
      * @param params The set of MCTS parameters
@@ -53,11 +54,19 @@ public class MyTreeNode {
      * @param actions We pass the static list of actions from the top to save memory
      */
     MyTreeNode(MyMCTSParams params, int numActions, Types.ACTIONS[] actions) {
-        this(params, numActions, actions, null, -1, null, 0);
+        this(params, numActions, actions, null, -1, null, 0, new double[actions.length], new double[actions.length]);
     }
 
-    private MyTreeNode(MyMCTSParams params, int numActions, Types.ACTIONS[] actions, MyTreeNode parent,
-                       int childIndex, StateHeuristic stateHeuristic, int forwardModelCallsCount){
+    private MyTreeNode(MyMCTSParams params,
+                       int numActions,
+                       Types.ACTIONS[] actions,
+                       MyTreeNode parent,
+                       int childIndex,
+                       StateHeuristic stateHeuristic,
+                       int forwardModelCallsCount,
+                       double[] raveVisits,
+                       double[] raveWins
+    ){
         this.params = params;
         this.forwardModelCallsCount = forwardModelCallsCount;
         this.parent = parent;
@@ -65,6 +74,8 @@ public class MyTreeNode {
         this.actions = actions;
         this.children = new MyTreeNode[numActions];
         this.childIndex = childIndex;
+        this.raveVisits = raveVisits;
+        this.raveWins = raveWins;
 
         if(parent != null) {
             currentDepth = parent.currentDepth + 1;
@@ -149,12 +160,17 @@ public class MyTreeNode {
         this.stateHeuristic = new CustomHeuristic(gameState);
     }
 
+    /**
+     * Select the next move and rolllll
+     * @param state Game state at the node
+     * @return the best move (child of this node)
+     */
     private MyTreeNode expandNode(GameState state) {
 
         int bestAction = 0;
         double bestValue = -1;
 
-        // TODO Question marks here
+        // Pick a random action
         for (int i = 0; i < children.length; i++) {
             double x = random.nextDouble();
             if (x > bestValue && children[i] == null) {
@@ -173,7 +189,9 @@ public class MyTreeNode {
                 this,
                 bestAction,
                 stateHeuristic,
-                forwardModelCallsCount
+                forwardModelCallsCount,
+                this.raveVisits,
+                this.raveWins
                 );
 
         children[bestAction] = treeNode;
@@ -212,18 +230,26 @@ public class MyTreeNode {
     private MyTreeNode upperConfidenceBound(GameState state) {
         MyTreeNode selected = null;
         double bestValue = -Double.MAX_VALUE;
+
+        // RAVE
+        double R = 2;
+
         for (MyTreeNode child : this.children)
         {
-            double hvVal = child.totalValue;
-            double childValue =  hvVal / (child.numberOfVisits + params.epsilon);
+            double childValue =  child.totalValue / (child.numberOfVisits + params.epsilon);
 
             childValue = Utils.normalise(childValue, bounds[0], bounds[1]);
 
-            double uctValue = childValue +
-                    2 * Math.sqrt(Math.log(this.numberOfVisits + 1) / (child.numberOfVisits + params.epsilon));
+            // Normal
+//            double uctValue = childValue + 2 * Math.sqrt(Math.log(this.numberOfVisits + 1) / (child.numberOfVisits + params.epsilon));
+
+            // RAVE
+            double beta = Math.sqrt(R / (R + 3.0 * child.numberOfVisits));
+            double uctValue = (1.0 - beta) * childValue
+                    + beta * (raveWins[child.childIndex] / raveVisits[child.childIndex])
+                    + params.K * Math.sqrt(Math.log(this.numberOfVisits + 1) / (child.numberOfVisits + params.epsilon));
 
             // Break ties randomly
-            // TODO probably a possibility for improvement here too
             uctValue = Utils.noise(uctValue, params.epsilon, random.nextDouble());
 
             // small sampleRandom numbers: break ties in unexpanded nodes
@@ -297,6 +323,11 @@ public class MyTreeNode {
             node.numberOfVisits++;
             // Update node value
             node.totalValue += result;
+
+            if(node.childIndex != -1){
+                node.raveVisits[node.childIndex]++;
+                node.raveWins[node.childIndex] += result;
+            }
 
             // Update bounds
             if (result < node.bounds[0]) {

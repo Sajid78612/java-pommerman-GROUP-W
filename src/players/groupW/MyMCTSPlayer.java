@@ -2,8 +2,6 @@ package players.groupW;
 
 import core.GameState;
 import players.Player;
-import players.mcts.MCTSParams;
-import players.mcts.SingleTreeNode;
 import players.optimisers.ParameterSet;
 import players.optimisers.ParameterizedPlayer;
 import utils.Types;
@@ -16,6 +14,13 @@ public class MyMCTSPlayer extends ParameterizedPlayer {
 
     // Our MCTS parameter set
     MyMCTSParams params;
+
+    // Use later to measure avg duration of moves per game
+    private ArrayList<Long> durations = new ArrayList<>();
+    // Counter to print method execution duration
+    private int printDurationCounter = 0;
+    // Print duration every n method executions
+    private int n = 50;
 
     public MyMCTSPlayer(long seed, int pId) {
         this(seed, pId, new MyMCTSParams());
@@ -37,6 +42,8 @@ public class MyMCTSPlayer extends ParameterizedPlayer {
 
     @Override
     public Types.ACTIONS act(GameState gameState) {
+        long startTime = System.nanoTime();
+
         // Number of actions available
         int numActions = actions.size();
 
@@ -49,6 +56,15 @@ public class MyMCTSPlayer extends ParameterizedPlayer {
         // Find best action
         rootNode.search(); // This call will terminate after a certain amount of time
         int bestAction = rootNode.findBestAction();
+
+        long endTime = System.nanoTime();
+        long duration = (endTime - startTime) / 1000000; // ms
+        durations.add(duration);
+
+        // Print every nth duration
+        printDurationCounter++;
+        if(printDurationCounter % n == 0)
+            System.out.println("Duration: " + duration + "ms");
 
         return actions.get(bestAction);
     }
