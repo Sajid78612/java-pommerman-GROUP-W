@@ -123,6 +123,8 @@ public class EMCTSNode {
             GameState state = gameState.copy();
 
             // Simulate
+            // Branch out from root node
+//            branchOut(state, this);
             EMCTSNode selected = selectChildNode(state);
 
             // Basic stopping condition for now
@@ -131,11 +133,27 @@ public class EMCTSNode {
         }
     }
 
+    // Ignore for now, will work on that soon - Max
+//    private void branchOut(GameState state, EMCTSNode current){
+//        while (!state.isTerminal() && current.currentDepth < params.maxRolloutDepth)
+//        {
+//            // Expand => go further down the tree
+//            if (current.notFullyExpanded()) {
+//                EMCTSNode child = current.expandNode(state);
+//                branchOut(state, child);
+//            }
+//            // Done expanding, evaluate leaf nodes
+//            else {
+//                current = current.evaluate(state);
+//            }
+//        }
+//    }
+
     public Types.ACTIONS[] findBestAction() {
         // Loop over the score board and get the best genome
         Types.ACTIONS[] bestGenome = new Types.ACTIONS[GENOME_LENGTH];
         double bestScore = -Double.MAX_VALUE;
-        for(var tuple : scoreBoard){
+        for(Tuple<Types.ACTIONS[], Double> tuple : scoreBoard){
             if(tuple.y > bestScore){
                 bestScore = tuple.y;
                 bestGenome = tuple.x;
@@ -209,11 +227,11 @@ public class EMCTSNode {
             // Roll out
             for(Types.ACTIONS action : child.genome){
                 rollState(copy, action);
-                if(state.isTerminal())
+                if(copy.isTerminal())
                     break;
             }
 
-            double result = Utils.noise(stateHeuristic.evaluateState(state), params.epsilon, random.nextDouble());
+            double result = Utils.noise(stateHeuristic.evaluateState(copy), params.epsilon, random.nextDouble());
             scoreBoard.add(new Tuple<>(child.genome, result));
 
             if(result > bestScore){
