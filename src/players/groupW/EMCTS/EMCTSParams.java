@@ -2,20 +2,23 @@ package players.groupW.EMCTS;
 
 import players.optimisers.ParameterSet;
 import utils.Pair;
+import utils.Types;
 
 import java.util.ArrayList;
 import java.util.Map;
 
 public class EMCTSParams implements ParameterSet {
 
-    public int maxRolloutDepth = 20;
+    public int maxRolloutDepth = 5;
     public double epsilon = 1e-6;
-    public double K = Math.sqrt(2);
 
     // Change this for testing
-    public int maxNumIterations = 200;
+    public int maxNumIterations = 60;
 
     public int branchingFactor = 2;
+
+    public double currentBest = -Double.MAX_VALUE;
+    public Types.ACTIONS[] currentBestGenome;
 
     @Override
     public void setParameterValue(String param, Object value) {

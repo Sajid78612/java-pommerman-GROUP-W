@@ -4,6 +4,7 @@ import core.GameState;
 import players.Player;
 import players.groupW.MyMCTSParams;
 import players.groupW.MyTreeNode;
+import players.mcts.MCTSPlayer;
 import players.optimisers.ParameterizedPlayer;
 import utils.Types;
 
@@ -36,7 +37,7 @@ public class EMCTSPlayer extends ParameterizedPlayer {
 
     @Override
     public Types.ACTIONS act(GameState gameState) {
-        long startTime = System.nanoTime();
+//        long startTime = System.nanoTime();
 
         // Number of actions available
         int numActions = actions.size();
@@ -67,10 +68,9 @@ public class EMCTSPlayer extends ParameterizedPlayer {
             currentGenome[i] = currentGenome[i + 1];
         }
 
-        long endTime = System.nanoTime();
-        long duration = (endTime - startTime) / 1000000; // ms
-        durations.add(duration);
-
+//        long endTime = System.nanoTime();
+//        long duration = (endTime - startTime) / 1000000; // ms
+//        durations.add(duration);
         // Print every nth duration
 //        printDurationCounter++;
 //        if(printDurationCounter % n == 0)
@@ -86,7 +86,7 @@ public class EMCTSPlayer extends ParameterizedPlayer {
 
     @Override
     public Player copy() {
-        return null;
+        return new EMCTSPlayer(seed, playerID);
     }
 
     @Override

@@ -7,6 +7,7 @@ import players.heuristics.StateHeuristic;
 import utils.Types;
 import utils.Utils;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Random;
@@ -118,14 +119,14 @@ public class EMCTSNode {
         boolean stop = false;
         numIterations = 0;
 
+        params.currentBest = -Double.MAX_VALUE;
+
         while(!stop){
             // Copy game state to isolate changes
             GameState state = gameState.copy();
 
             // Simulate
-            // Branch out from root node
-//            branchOut(state, this);
-            EMCTSNode selected = selectChildNode(state);
+            selectChildNode(state, this);
 
             // Basic stopping condition for now
             numIterations++;
@@ -133,56 +134,43 @@ public class EMCTSNode {
         }
     }
 
-    // Ignore for now, will work on that soon - Max
-//    private void branchOut(GameState state, EMCTSNode current){
-//        while (!state.isTerminal() && current.currentDepth < params.maxRolloutDepth)
-//        {
-//            // Expand => go further down the tree
-//            if (current.notFullyExpanded()) {
-//                EMCTSNode child = current.expandNode(state);
-//                branchOut(state, child);
-//            }
-//            // Done expanding, evaluate leaf nodes
-//            else {
-//                current = current.evaluate(state);
-//            }
-//        }
-//    }
-
     public Types.ACTIONS[] findBestAction() {
         // Loop over the score board and get the best genome
-        Types.ACTIONS[] bestGenome = new Types.ACTIONS[GENOME_LENGTH];
-        double bestScore = -Double.MAX_VALUE;
-        for(Tuple<Types.ACTIONS[], Double> tuple : scoreBoard){
-            if(tuple.y > bestScore){
-                bestScore = tuple.y;
-                bestGenome = tuple.x;
-            }
-        }
-
-        return bestGenome;
+//        Types.ACTIONS[] bestGenome = new Types.ACTIONS[GENOME_LENGTH];
+//        double bestScore = -Double.MAX_VALUE;
+//        for(Tuple<Types.ACTIONS[], Double> tuple : scoreBoard){
+//            if(tuple.y > bestScore){
+//                bestScore = tuple.y;
+//                bestGenome = tuple.x;
+//            }
+//        }
+//
+//        return bestGenome;
+        return params.currentBestGenome;
     }
 
-    EMCTSNode selectChildNode(GameState state){
-        EMCTSNode current = this;
-
-        while (!state.isTerminal() && current.currentDepth < params.maxRolloutDepth)
+    EMCTSNode selectChildNode(GameState state, EMCTSNode node){
+        if (!state.isTerminal() && node.currentDepth < params.maxRolloutDepth - 1)
         {
             // Expand => go further down the tree
-            if (current.notFullyExpanded()) {
-                return current.expandNode(state);
+            for(int i = 0; i < params.branchingFactor; i++){
+                EMCTSNode child = node.expandNode(state);
+                child.selectChildNode(state, child);
             }
-            // Done expanding, evaluate leaf nodes
-            else {
-                current = current.evaluate(state);
+        } else if(node.currentDepth == params.maxRolloutDepth - 1) {
+            // Create last two children => leaf nodes
+            for(int i = 0; i < params.branchingFactor; i++){
+                node.expandNode(state);
             }
+            // Evaluate children
+            node.evaluate(state);
         }
 
-        return current;
+        return node;
     }
 
     /**
-     * Select the next move and rolllll
+     * Create a child node with a modified genome
      * @param state Game state at the node
      * @return the best move (child of this node)
      */
@@ -196,9 +184,6 @@ public class EMCTSNode {
         Types.ACTIONS[] childGenome = new Types.ACTIONS[GENOME_LENGTH];
         System.arraycopy(genome, 0, childGenome, 0, GENOME_LENGTH);
         childGenome[genePosition] = actions[childGene];
-
-        // Roll the state
-        // rollState(state, actions[bestAction]);
 
         // Branch out
         EMCTSNode childNode = new EMCTSNode(
@@ -216,11 +201,7 @@ public class EMCTSNode {
         return childNode;
     }
 
-    // Evaluate the leaf node
-    private EMCTSNode evaluate(GameState state) {
-        EMCTSNode best = null;
-        double bestScore = -Double.MAX_VALUE;
-
+    private void evaluate(GameState state) {
         for(EMCTSNode child : children){
             // Copy game state
             GameState copy = state.copy();
@@ -231,21 +212,20 @@ public class EMCTSNode {
                     break;
             }
 
+            // Add noise to break ties
             double result = Utils.noise(stateHeuristic.evaluateState(copy), params.epsilon, random.nextDouble());
-            scoreBoard.add(new Tuple<>(child.genome, result));
-
-            if(result > bestScore){
-                best = child;
-                bestScore = result;
+            if(result > params.currentBest){
+                // Add leaf node value to score board
+                scoreBoard.add(new Tuple<>(child.genome, result));
+                params.currentBest = result;
+                params.currentBestGenome = child.genome;
             }
         }
-
-        return best;
     }
 
     private void rollState(GameState gs, Types.ACTIONS act)
     {
-        //Simple, all random first, then my position.
+        // Simple, all random first, then my position.
         int nPlayers = 4;
         Types.ACTIONS[] playerActions = new Types.ACTIONS[4];
 
@@ -269,14 +249,6 @@ public class EMCTSNode {
 
         // Roll out game state with
         gs.next(playerActions);
-    }
-
-    /**
-     * Whether the current search tree is fully expanded
-     * @return
-     */
-    private boolean notFullyExpanded() {
-        return children.size() < params.branchingFactor;
     }
 
     /**
