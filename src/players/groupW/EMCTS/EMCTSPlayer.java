@@ -2,32 +2,24 @@ package players.groupW.EMCTS;
 
 import core.GameState;
 import players.Player;
-import players.groupW.MyMCTSParams;
-import players.groupW.MyTreeNode;
-import players.mcts.MCTSPlayer;
 import players.optimisers.ParameterizedPlayer;
 import utils.Types;
 
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Random;
 
 public class EMCTSPlayer extends ParameterizedPlayer {
 
+    // Static final list of all the allowed actions in the game
     private static final ArrayList<Types.ACTIONS> actions = Types.ACTIONS.all();
 
-    // Our MCTS parameter set
+    // Our EMCTS parameter set
     EMCTSParams params;
 
-    // Use later to measure avg duration of moves per game
-    private ArrayList<Long> durations = new ArrayList<>();
-    // Counter to print method execution duration
-    private int printDurationCounter = 0;
-    // Print duration every n method executions
-    private int n = 50;
-
+    // Placeholder for the currently best genome
     private Types.ACTIONS[] currentGenome;
 
+    // Java random number engine
     private Random random = new Random();
 
     public EMCTSPlayer(long seed, int playerID) {
@@ -37,26 +29,26 @@ public class EMCTSPlayer extends ParameterizedPlayer {
 
     @Override
     public Types.ACTIONS act(GameState gameState) {
-//        long startTime = System.nanoTime();
-
-        // Number of actions available
-        int numActions = actions.size();
-
-        // Pass current game state to root node for MCTS search
+        // Pass current game state to root node for EMCTS search
         EMCTSNode rootNode;
         if(currentGenome == null){
             rootNode = new EMCTSNode(params,
                     actions.toArray(new Types.ACTIONS[0]) // This just converts the list of all actions to an array
             );
+            // If root node initialise variables (e.g. score board)
             rootNode.init();
         } else{
+            // If it is not the first iteration, use values from previous iterations
             rootNode = new EMCTSNode(params, actions.toArray(new Types.ACTIONS[0]), currentGenome);
         }
+        // Apply current game state
         rootNode.setCurrentGameState(gameState);
 
-        // Find best action
-        rootNode.search(); // This call will terminate after a certain amount of time
+        // Find best genome (and thereby action) for this turn
+        rootNode.search(); // This call will terminate after a certain number of iterations
+        // Get the best genome
         currentGenome = rootNode.findBestAction();
+        // Take the first action of the best genome
         int bestAction = Types.ACTIONS.all().indexOf(currentGenome[0]);
 
         // Shift current genome
@@ -67,14 +59,6 @@ public class EMCTSPlayer extends ParameterizedPlayer {
             }
             currentGenome[i] = currentGenome[i + 1];
         }
-
-//        long endTime = System.nanoTime();
-//        long duration = (endTime - startTime) / 1000000; // ms
-//        durations.add(duration);
-        // Print every nth duration
-//        printDurationCounter++;
-//        if(printDurationCounter % n == 0)
-//            System.out.println("Duration: " + duration + "ms");
 
         return actions.get(bestAction);
     }

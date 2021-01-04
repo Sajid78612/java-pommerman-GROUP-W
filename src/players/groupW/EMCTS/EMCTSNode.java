@@ -1,57 +1,56 @@
 package players.groupW.EMCTS;
 
 import core.GameState;
-import players.groupW.MyTreeNode;
 import players.heuristics.CustomHeuristic;
 import players.heuristics.StateHeuristic;
 import utils.Types;
 import utils.Utils;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Random;
 
 public class EMCTSNode {
-    private EMCTSNode parent;
-    private ArrayList<EMCTSNode> children;
+    // Parent node
+    private final EMCTSNode parent;
+    // Children of the current node. The length of this list is determined
+    // by the EMCTS param "branchingFactor"
+    private final ArrayList<EMCTSNode> children;
 
     // The game state
     private GameState gameState;
 
-    // MCTS parameters
-    private EMCTSParams params;
+    // EMCTS parameters
+    private final EMCTSParams params;
 
-    // The number of actions allowed (branching factor of the search tree)
-    private Types.ACTIONS[] actions;
+    // Available actions
+    private final Types.ACTIONS[] actions;
 
     // Current depth in the search tree
-    private int currentDepth;
+    private final int currentDepth;
 
+    // Java random number engine
     private static final Random random = new Random();
 
-    private int childIndex;
-
-    private int forwardModelCallsCount;
-
+    // Heuristic for evaluating game states
     private StateHeuristic stateHeuristic;
-
-    private double totalValue;
-
-    private int numberOfVisits;
-
-    private double[] bounds = new double[]{Double.MAX_VALUE, -Double.MAX_VALUE};
-
-    private int numIterations = 0;
 
     private double[] raveVisits;
     private double[] raveWins;
 
-    // EMCTS stuff
+    // The genome (sequence of actions)
     private Types.ACTIONS[] genome;
+
+    // The length of the genome
     private static final int GENOME_LENGTH = 5;
+
+    // List of all the genomes of leaf nodes and their scores
     private ArrayList<Tuple<Types.ACTIONS[], Double>> scoreBoard;
 
+    /**
+     * Helper class for storing genomes and their scores
+     * @param <X>
+     * @param <Y>
+     */
     class Tuple<X, Y> {
         public final X x;
         public final Y y;
@@ -67,25 +66,28 @@ public class EMCTSNode {
      * @param actions We pass the static list of actions from the top to save memory
      */
     EMCTSNode(EMCTSParams params, Types.ACTIONS[] actions) {
-        this(params, actions, null, null, 0, new double[actions.length], new double[actions.length], new Types.ACTIONS[GENOME_LENGTH]);
+        this(params, actions, null, null, new double[actions.length], new double[actions.length], new Types.ACTIONS[GENOME_LENGTH]);
     }
 
-    // Called by EMCTS Player
+    /**
+     * Constructor called by EMCTS Player
+     * @param params EMCTS params
+     * @param actions Available actions
+     * @param genome The current genome
+     */
     EMCTSNode(EMCTSParams params, Types.ACTIONS[] actions, Types.ACTIONS[] genome) {
-        this(params, actions, null, null, 0, new double[actions.length], new double[actions.length], genome);
+        this(params, actions, null, null, new double[actions.length], new double[actions.length], genome);
     }
 
     private EMCTSNode(EMCTSParams params,
                        Types.ACTIONS[] actions,
                        EMCTSNode parent,
                        StateHeuristic stateHeuristic,
-                       int forwardModelCallsCount,
                        double[] raveVisits,
                        double[] raveWins,
                       Types.ACTIONS[] genome
     ){
         this.params = params;
-        this.forwardModelCallsCount = forwardModelCallsCount;
         this.parent = parent;
         this.actions = actions;
         this.children = new ArrayList<>();
@@ -93,19 +95,24 @@ public class EMCTSNode {
         this.raveWins = raveWins;
         this.genome = genome;
 
+        // If there is a parent node increase the depth and get state heuristic and score board from parent
         if(parent != null) {
             currentDepth = parent.currentDepth + 1;
             this.stateHeuristic = stateHeuristic;
             this.scoreBoard = parent.scoreBoard;
         }
+        // If this node is the root node, initialise with depth 0 and empty score board
         else{
             currentDepth = 0;
             this.scoreBoard = new ArrayList<>();
         }
     }
 
+    /**
+     * Initialise function called only for root node
+     */
     public void init(){
-        // Init genome randomly
+        // Initialise genome randomly
         genome = new Types.ACTIONS[GENOME_LENGTH];
         for(int i = 0; i < genome.length; i++){
             genome[i] = Types.ACTIONS.all().get(random.nextInt(actions.length));
@@ -113,20 +120,24 @@ public class EMCTSNode {
     }
 
     /**
-     * Performs the MCTS search
+     * Performs the EMCTS search until stopping condition is met
      */
     public void search(){
+        // Stop flag
         boolean stop = false;
-        numIterations = 0;
+        // Number of iterations
+        int numIterations = 0;
 
+        // Store the current best in parameters to reduce search time during evaluation
         params.currentBest = -Double.MAX_VALUE;
 
+        // Create EMCTS trees until the stopping condition is met
         while(!stop){
             // Copy game state to isolate changes
             GameState state = gameState.copy();
 
             // Simulate
-            selectChildNode(state, this);
+            emctsSearch(state, this);
 
             // Basic stopping condition for now
             numIterations++;
@@ -149,24 +160,27 @@ public class EMCTSNode {
         return params.currentBestGenome;
     }
 
-    EMCTSNode selectChildNode(GameState state, EMCTSNode node){
+    /**
+     * Create the EMCTS search tree by expanding nodes depth first
+     * @param state The game state
+     * @param node the current node in the search tree
+     */
+    void emctsSearch(GameState state, EMCTSNode node){
         if (!state.isTerminal() && node.currentDepth < params.maxRolloutDepth - 1)
         {
             // Expand => go further down the tree
             for(int i = 0; i < params.branchingFactor; i++){
                 EMCTSNode child = node.expandNode(state);
-                child.selectChildNode(state, child);
+                child.emctsSearch(state, child);
             }
         } else if(node.currentDepth == params.maxRolloutDepth - 1) {
-            // Create last two children => leaf nodes
+            // Create last layer of children => leaf nodes
             for(int i = 0; i < params.branchingFactor; i++){
                 node.expandNode(state);
             }
             // Evaluate children
             node.evaluate(state);
         }
-
-        return node;
     }
 
     /**
@@ -176,36 +190,39 @@ public class EMCTSNode {
      */
     private EMCTSNode expandNode(GameState state) {
         // Randomly pick a gene to mutate
-        // TODO: Important - change random picking to heuristic
-
         int genePosition = random.nextInt(GENOME_LENGTH);
         int childGene = random.nextInt(actions.length);
 
+        // Copy parent genome, then apply the mutation
         Types.ACTIONS[] childGenome = new Types.ACTIONS[GENOME_LENGTH];
         System.arraycopy(genome, 0, childGenome, 0, GENOME_LENGTH);
         childGenome[genePosition] = actions[childGene];
 
-        // Branch out
+        // Create child node
         EMCTSNode childNode = new EMCTSNode(
                 params,
                 actions,
                 this,
                 stateHeuristic,
-                forwardModelCallsCount,
                 this.raveVisits,
                 this.raveWins,
                 childGenome
         );
 
+        // Add created node to the parent node's children
         children.add(childNode);
         return childNode;
     }
 
+    /**
+     * Evaluate a leaf node's fitness using the state heuristic
+     * @param state The game state that serves as the basis for evaluation
+     */
     private void evaluate(GameState state) {
         for(EMCTSNode child : children){
             // Copy game state
             GameState copy = state.copy();
-            // Roll out
+            // Roll out moves
             for(Types.ACTIONS action : child.genome){
                 rollState(copy, action);
                 if(copy.isTerminal())
@@ -223,14 +240,21 @@ public class EMCTSNode {
         }
     }
 
-    private void rollState(GameState gs, Types.ACTIONS act)
+    /**
+     * Apply moves to a game state to simulate resulting states
+     * @param gameState The current game state
+     * @param act The action of our agent
+     */
+    private void rollState(GameState gameState, Types.ACTIONS act)
     {
-        // Simple, all random first, then my position.
+        // Simple heuristic for opponents: Random moves
+        // Assume 4 players
         int nPlayers = 4;
+        // Create array for player moves (both this agent and opponents)
         Types.ACTIONS[] playerActions = new Types.ACTIONS[4];
 
         // Get our player ID
-        int playerId = gs.getPlayerId() - Types.TILETYPE.AGENT0.getKey();
+        int playerId = gameState.getPlayerId() - Types.TILETYPE.AGENT0.getKey();
 
         // Assign player action for rollout
         for(int i = 0; i < nPlayers; ++i)
@@ -241,14 +265,13 @@ public class EMCTSNode {
                 playerActions[i] = act;
             }else {
                 // Pick random move for opponents
-                // TODO this could be improved by a heuristic
-                int actionIdx = random.nextInt(gs.nActions());
+                int actionIdx = random.nextInt(gameState.nActions());
                 playerActions[i] = Types.ACTIONS.all().get(actionIdx);
             }
         }
 
         // Roll out game state with
-        gs.next(playerActions);
+        gameState.next(playerActions);
     }
 
     /**
@@ -257,9 +280,6 @@ public class EMCTSNode {
      */
     public void setCurrentGameState(GameState gameState){
         this.gameState = gameState;
-
-        // TODO Change heuristic
-        // Not sure whether we're allowed to use their heuristics
         this.stateHeuristic = new CustomHeuristic(gameState);
     }
 }
