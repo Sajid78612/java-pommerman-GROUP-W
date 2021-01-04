@@ -7,6 +7,8 @@ import utils.Types;
 import utils.Utils;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
 
 public class EMCTSNode {
@@ -45,6 +47,13 @@ public class EMCTSNode {
 
     // List of all the genomes of leaf nodes and their scores
     private ArrayList<Tuple<Types.ACTIONS[], Double>> scoreBoard;
+
+    // FPU Variables
+    private final boolean FPU_FEATURE = false; // Use this to enable the FPU feature
+    private final double FPU_value = 1.0; // Default FPU value
+    private HashMap<Integer, Types.ACTIONS> action_mapping;
+    private int N_ACTIONS;
+    private Types.ACTIONS FPU_Action_choice;
 
     /**
      * Helper class for storing genomes and their scores
@@ -160,6 +169,47 @@ public class EMCTSNode {
         return params.currentBestGenome;
     }
 
+    public <K, V> K getKey(Map<K, V> map, V value) {
+        for (Map.Entry<K, V> entry : map.entrySet()) {
+            if (entry.getValue().equals(value)) {
+                return entry.getKey();
+            }
+        }
+        return null;
+    }
+
+    public int UCB1Tuned(){
+        return 0;
+    }
+
+    public Types.ACTIONS FPU_Selection(GameState state, EMCTSNode node) {
+        N_ACTIONS = actions.length;
+        double[] urgency = new double[N_ACTIONS];
+        action_mapping = new HashMap<>();
+        int k = 0;
+        for (Types.ACTIONS a : actions) {
+            action_mapping.put(k, a);
+            k++;
+        }
+
+        for(Types.ACTIONS a : actions) {
+            for(Types.ACTIONS action_genome : genome) {
+                if(a.equals(action_genome)) {
+                    urgency[getKey(action_mapping, a)] = FPU_value;
+                }
+            }
+        }
+
+        int index = 0;
+        for (int i=1; i<urgency.length; i++) {
+            if (urgency[i] > urgency[index]) {
+                index = i;
+            }
+        }
+
+        return action_mapping.get(index);
+    }
+
     /**
      * Create the EMCTS search tree by expanding nodes depth first
      * @param state The game state
@@ -170,6 +220,9 @@ public class EMCTSNode {
         {
             // Expand => go further down the tree
             for(int i = 0; i < params.branchingFactor; i++){
+                if(FPU_FEATURE) {
+                    FPU_Action_choice = FPU_Selection(state, node);
+                }
                 EMCTSNode child = node.expandNode(state);
                 child.emctsSearch(state, child);
             }
@@ -196,7 +249,12 @@ public class EMCTSNode {
         // Copy parent genome, then apply the mutation
         Types.ACTIONS[] childGenome = new Types.ACTIONS[GENOME_LENGTH];
         System.arraycopy(genome, 0, childGenome, 0, GENOME_LENGTH);
-        childGenome[genePosition] = actions[childGene];
+        if(FPU_FEATURE) {
+            childGenome[genePosition] = FPU_Action_choice;
+        }
+        else {
+            childGenome[genePosition] = actions[childGene];
+        }
 
         // Create child node
         EMCTSNode childNode = new EMCTSNode(
