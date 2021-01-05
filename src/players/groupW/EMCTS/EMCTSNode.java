@@ -49,7 +49,7 @@ public class EMCTSNode {
     private ArrayList<Tuple<Types.ACTIONS[], Double>> scoreBoard;
 
     // FPU Variables
-    private final boolean FPU_FEATURE = false; // Use this to enable the FPU feature
+    private final boolean FPU_FEATURE = false; // Use this to toggle the FPU feature
     private final double FPU_value = 1.0; // Default FPU value
     private HashMap<Integer, Types.ACTIONS> action_mapping;
     private int N_ACTIONS;
@@ -178,7 +178,26 @@ public class EMCTSNode {
         return null;
     }
 
-    public int UCB1Tuned(){
+    public double UCB1Tuned(GameState state, EMCTSNode node, Types.ACTIONS a){
+        ArrayList<Types.ACTIONS> actionsList = Types.ACTIONS.all();
+        double maxQ = Double.NEGATIVE_INFINITY;
+        Types.ACTIONS bestAction = null;
+
+        for (Types.ACTIONS act : actionsList) {
+            GameState gsCopy = state.copy();
+            double valState = stateHeuristic.evaluateState(gsCopy);
+
+            //System.out.println(valState);
+            double Q = Utils.noise(valState, params.epsilon, random.nextDouble());
+
+            //System.out.println("Action:" + action + " score:" + Q);
+            if (Q > maxQ) {
+                maxQ = Q;
+                bestAction = act;
+            }
+
+        }
+
         return 0;
     }
 
@@ -192,16 +211,22 @@ public class EMCTSNode {
             k++;
         }
 
+        boolean inTree = false;
         for(Types.ACTIONS a : actions) {
-            for(Types.ACTIONS action_genome : genome) {
-                if(a.equals(action_genome)) {
+            for(Types.ACTIONS action_in_tree : genome) {
+                if(a.equals(action_in_tree)) {
                     urgency[getKey(action_mapping, a)] = FPU_value;
+                    inTree = true;
                 }
+            }
+            if(!inTree) {
+                urgency[getKey(action_mapping, a)] = UCB1Tuned(state, node, a);
             }
         }
 
         int index = 0;
         for (int i=1; i<urgency.length; i++) {
+            System.out.println(urgency[i]);
             if (urgency[i] > urgency[index]) {
                 index = i;
             }
