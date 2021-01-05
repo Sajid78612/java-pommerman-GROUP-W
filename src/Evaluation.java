@@ -27,7 +27,7 @@ public class Evaluation {
         KeyController ki2 = new KeyController(false);
 
         // Partial observability: Can be 0, 1, 2 (PO) or -1 for full observability
-        int visionRange = 2;
+        int visionRange = -1;
         Types.DEFAULT_VISION_RANGE = visionRange;
         Game game = new Game(seed, boardSize, Types.GAME_MODE.FFA, "");
 
@@ -70,8 +70,8 @@ public class Evaluation {
 
         /* Run with no visuals, N Times: */
         int N = 5;
-        Run.runGames(game, new long[]{seed}, N, useSeparateThreads);
-//        Run.runGames(game, seeds, N, useSeparateThreads);
+//        Run.runGames(game, new long[]{seed}, N, useSeparateThreads);
+        Run.runGames(game, seeds, N, useSeparateThreads);
 
     }
 }

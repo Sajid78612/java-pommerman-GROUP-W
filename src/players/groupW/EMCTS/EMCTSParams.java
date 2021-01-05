@@ -13,7 +13,7 @@ public class EMCTSParams implements ParameterSet {
     public double epsilon = 1e-6;
 
     // Change this for testing
-    public int maxNumIterations = 60;
+    public int maxNumIterations = 40;
 
     public int branchingFactor = 2;
 
