@@ -9,11 +9,12 @@ import java.util.Map;
 
 public class EMCTSParams implements ParameterSet {
 
-    public int maxRolloutDepth = 5;
+    public int maxRolloutDepth = 4;
     public double epsilon = 1e-6;
 
     // Change this for testing
-    public int maxNumIterations = 40;
+    // Was 40 for tests
+    public int maxNumIterations = 8;
 
     public int branchingFactor = 2;
 

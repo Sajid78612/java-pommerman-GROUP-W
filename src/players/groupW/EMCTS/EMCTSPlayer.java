@@ -51,6 +51,14 @@ public class EMCTSPlayer extends ParameterizedPlayer {
         // Take the first action of the best genome
         int bestAction = Types.ACTIONS.all().indexOf(currentGenome[0]);
 
+        int a = 2;
+        if(currentGenome[0] == null){
+            a=2;
+        }
+        if(bestAction == -1){
+            a = 2;
+        }
+
         // Shift current genome
         for(int i = 0; i < currentGenome.length; i++){
             if(i == currentGenome.length - 1){

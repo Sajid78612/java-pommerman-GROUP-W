@@ -49,7 +49,7 @@ public class EMCTSNode {
     private ArrayList<Tuple<Types.ACTIONS[], Double>> scoreBoard;
 
     // FPU Variables
-    private final boolean FPU_FEATURE = false; // Use this to toggle the FPU feature
+    private final boolean FPU_FEATURE = true; // Use this to toggle the FPU feature
     private final double FPU_value = 1.0; // Default FPU value
     private HashMap<Integer, Types.ACTIONS> action_mapping;
     private int N_ACTIONS;
@@ -155,17 +155,6 @@ public class EMCTSNode {
     }
 
     public Types.ACTIONS[] findBestAction() {
-        // Loop over the score board and get the best genome
-//        Types.ACTIONS[] bestGenome = new Types.ACTIONS[GENOME_LENGTH];
-//        double bestScore = -Double.MAX_VALUE;
-//        for(Tuple<Types.ACTIONS[], Double> tuple : scoreBoard){
-//            if(tuple.y > bestScore){
-//                bestScore = tuple.y;
-//                bestGenome = tuple.x;
-//            }
-//        }
-//
-//        return bestGenome;
         return params.currentBestGenome;
     }
 
@@ -185,6 +174,7 @@ public class EMCTSNode {
 
         for (Types.ACTIONS act : actionsList) {
             GameState gsCopy = state.copy();
+            rollState(gsCopy, act);
             double valState = stateHeuristic.evaluateState(gsCopy);
 
             //System.out.println(valState);
@@ -198,7 +188,7 @@ public class EMCTSNode {
 
         }
 
-        return 0;
+        return maxQ;
     }
 
     public Types.ACTIONS FPU_Selection(GameState state, EMCTSNode node) {
@@ -225,8 +215,8 @@ public class EMCTSNode {
         }
 
         int index = 0;
-        for (int i=1; i<urgency.length; i++) {
-            System.out.println(urgency[i]);
+        for (int i=0; i<urgency.length; i++) {
+//            System.out.println(urgency[i]);
             if (urgency[i] > urgency[index]) {
                 index = i;
             }
@@ -253,6 +243,9 @@ public class EMCTSNode {
             }
         } else if(node.currentDepth == params.maxRolloutDepth - 1) {
             // Create last layer of children => leaf nodes
+            if(FPU_FEATURE) {
+                FPU_Action_choice = FPU_Selection(state, node);
+            }
             for(int i = 0; i < params.branchingFactor; i++){
                 node.expandNode(state);
             }
